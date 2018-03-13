@@ -2,7 +2,6 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse,HttpResponseRedirect
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.http import Http404
 #custome imports
 from .models import Post
 from .forms import PostForm
@@ -15,7 +14,6 @@ def posts_list(request):
     paginator = Paginator(queryset_list, 2) # Show 25 contacts per page
     page_request_var = "page"
     page = request.GET.get(page_request_var)
-
     try:
         queryset = paginator.page(page)
     except PageNotAnInteger:
@@ -33,18 +31,14 @@ def posts_list(request):
     return render(request, "post_list.html", context)
 
 def posts_create(request):
-    if not request.user.is_staff:
-        raise Http404()
-    if not request.user.is_authenticated():
-        raise Http404()
-
+    if not request.user.is_staff or request.user.is_superuser:
+        raise Http404
     form = PostForm(request.POST or None, request.FILES or None)
     if form.is_valid():
         instance = form.save(commit= False)
-        instance.user = request.user
         instance.save()
         messages.success(request, "Post Created")
-        return HttpResponseRedirect(instance.get_absolute_url)
+        return HttpResponseRedirect(instance.get_absolute_url())
 
     context = {
         "title" : "Create Blog Post",
@@ -68,14 +62,14 @@ def posts_update(request, slug = None):
     if form.is_valid():
         instance = form.save(commit=False)
         instance.save()
-        return HttpResponseRedirect(instance.get_absolute_url)
+        return HttpResponseRedirect(instance.get_absolute_url())
     context = {
         "title": instance.title,
         "instance": instance,
         "form":form,
+
     }
     return render(request, "post_form.html", context)
-
 def posts_delete(request, slug = None):
     instance = get_object_or_404(Post, slug=slug)
     instance.delete()
