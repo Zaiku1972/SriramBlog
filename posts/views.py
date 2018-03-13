@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse,HttpResponseRedirect
+from django.http import HttpResponse,HttpResponseRedirect, Http404
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 #custome imports
@@ -31,11 +31,12 @@ def posts_list(request):
     return render(request, "post_list.html", context)
 
 def posts_create(request):
-    if not request.user.is_staff or request.user.is_superuser:
-        raise Http404
+    if not request.user.is_staff:
+        raise Http404()
     form = PostForm(request.POST or None, request.FILES or None)
     if form.is_valid():
         instance = form.save(commit= False)
+        instance.user = request.user
         instance.save()
         messages.success(request, "Post Created")
         return HttpResponseRedirect(instance.get_absolute_url())
@@ -70,6 +71,7 @@ def posts_update(request, slug = None):
 
     }
     return render(request, "post_form.html", context)
+
 def posts_delete(request, slug = None):
     instance = get_object_or_404(Post, slug=slug)
     instance.delete()
